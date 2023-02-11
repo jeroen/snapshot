@@ -1,0 +1,19 @@
+Package: snapshot
+Type: Package
+Title: Create snapshots of R package repositories
+Version: 0.1.0
+Authors@R: person("Jeroen", "Ooms", role = c("aut", "cre"), 
+    email = "jeroen@berkeley.edu", comment = c(ORCID = "0000-0002-4035-0289"))
+Description: More about what it does (maybe more than one line)
+    Use four spaces when indenting paragraphs within the Description.
+License: MIT + file LICENSE
+Encoding: UTF-8
+LazyData: true
+Imports: 
+    curl,
+    withr
+RoxygenNote: 7.2.3
+VignetteBuilder: knitr
+Suggests:
+    knitr,
+    rmarkdown,
