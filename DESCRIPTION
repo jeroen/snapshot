@@ -4,8 +4,9 @@ Title: Create snapshots of R package repositories
 Version: 0.1.0
 Authors@R: person("Jeroen", "Ooms", role = c("aut", "cre"), 
     email = "jeroen@berkeley.edu", comment = c(ORCID = "0000-0002-4035-0289"))
-Description: More about what it does (maybe more than one line)
-    Use four spaces when indenting paragraphs within the Description.
+Description: Create and manage snapshots of R package repositories. Both allows
+    creating a full copy of a package repository, or create custom snapshots 
+    containing a subset of packages.
 License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
