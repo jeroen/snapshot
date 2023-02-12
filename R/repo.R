@@ -7,59 +7,80 @@
 #' @export
 #' @rdname snapshot
 #' @param repo url of the cran-like repository to snapshot
-#' @param destdir directory in which to store the snapshotted repository.
+#' @param destdir directory in which to store the snapshot repository.
+#' @param packages names of packages to include. Default is all packages in the repo.
 #' @param win_binaries download binary packages for Windows
 #' @param mac_binaries download binary packages for MacOS
 #' @param bin_versions vector with versions of R to download the win/mac binary
 #' packages. The default is to download binaries only for your local R version.
 #' @examples repo_snapshot('https://jeroen.r-universe.dev', 'test', bin_versions = c("4.0", "4.1", "4.2", "4.3"))
 #' unlink("test", recursive = TRUE)
-repo_snapshot <- function(repo, destdir = NULL, win_binaries = TRUE, mac_binaries = TRUE, bin_versions = r_version()){
+repo_snapshot <- function(repo, destdir = NULL, packages = NULL, win_binaries = TRUE, mac_binaries = TRUE, bin_versions = r_version()){
   if(!length(destdir))
     destdir <- chartr('.', '_', sub("/.*$", "", sub("^.*//", "", repo)))
   unlink(destdir, recursive = TRUE)
   dir.create(destdir, showWarnings = FALSE, recursive = TRUE)
-  download_single_repo(contrib_path(repo, 'src'), contrib_path(destdir, 'src'), 'src')
+  download_single_repo(contrib_path(repo, 'src'), contrib_path(destdir, 'src'), 'src', packages = packages)
   for(rver in unique(major_version(as.character(bin_versions)))){
     if(isTRUE(win_binaries)){
-      download_single_repo(contrib_path(repo, 'win', rver), contrib_path(destdir, 'win', rver), 'win')
+      download_single_repo(contrib_path(repo, 'win', rver), contrib_path(destdir, 'win', rver), 'win', packages = packages)
     }
     if(isTRUE(mac_binaries)){
-      download_single_repo(contrib_path(repo, 'mac', rver), contrib_path(destdir, 'mac', rver), 'mac')
+      download_single_repo(contrib_path(repo, 'mac', rver), contrib_path(destdir, 'mac', rver), 'mac', packages = packages)
     }
   }
   list.files(destdir, recursive = TRUE)
 }
 
-download_single_repo <- function(url, destdir, type = 'src'){
+repo_index <- function(url){
+  con <- curl::curl(file.path(url, c("PACKAGES")))
+  on.exit(close(con), add = TRUE)
+  as.data.frame(read.dcf(con), stringsAsFactors = FALSE)
+}
+
+download_single_repo <- function(url, destdir, type = 'src', packages = NULL){
   unlink(destdir, recursive = TRUE)
   dir.create(destdir, showWarnings = FALSE, recursive = TRUE)
   withr::local_dir(destdir)
   message("Mirroring repo: ", url)
-  con <- curl::curl(file.path(url, c("PACKAGES")))
-  on.exit(close(con), add = TRUE)
-  df <- as.data.frame(read.dcf(con), stringsAsFactors = FALSE)
-  if(nrow(df) == 0){
+  df <- repo_index(url)
+  if(length(packages)){
+    missing <- setdiff(packages, df$Package)
+    if(length(missing)){
+      stop(sprintf("Requested package %s missing from %s", paste(missing, collapse = ', '), url), call. = FALSE)
+    }
+    df <- df[df$Package %in% packages,]
+  } else if(nrow(df) == 0){
     warning("Repository is empty: ", url, call. = FALSE)
     return(df)
   }
   writeLines(sprintf('Mirror from %s at %s', url, as.character(Sys.time())), 'timestamp.txt')
-  df$fileurl <- paste0(url, '/', pkg_file(df$Package, df$Version, type))
-  pkgfiles <- paste0(url, '/', c("PACKAGES", "PACKAGES.gz", "PACKAGES.rds"))
-  results <- curl::multi_download(c(pkgfiles, df$fileurl))
+  pkgfiles <- pkg_file(df$Package, df$Version, type)
+  downloads <- paste0(url, '/', pkgfiles)
+  results <- curl::multi_download(downloads)
   unlink(results$destfile[results$status_code != 200])
-  outfiles <- basename(df$fileurl)
-  failed <- outfiles[!file.exists(outfiles)]
-  if(any(failed)){
+  failed <- pkgfiles[!file.exists(pkgfiles)]
+  if(length(failed)){
     stop("Downloading failed for some files: ", paste(failed, collapse = ', '))
   }
+  checksums <- unname(tools::md5sum(pkgfiles))
   if(length(df$MD5sum)){
-    checksum <- unname(tools::md5sum(outfiles))
-    stopifnot(all.equal(checksum, df$MD5sum))
+    stopifnot(all.equal(checksums, df$MD5sum))
   } else {
-    message("Skipping MD5sum checks for this repo")
+    message(sprintf("No MD5sum values found for %s (adding them now)", url))
+    df$MD5sum <- checksums
   }
+  write_indexes(df)
   df
+}
+
+# See .write_repository_package_db
+write_indexes <- function(db){
+  write.dcf(db, 'PACKAGES')
+  con <- gzfile("PACKAGES.gz", "wt")
+  write.dcf(db, con)
+  close(con)
+  saveRDS(db, "PACKAGES.rds", compress = "xz")
 }
 
 pkg_file <- function(package, version, type){

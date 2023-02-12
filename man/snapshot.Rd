@@ -8,6 +8,7 @@
 repo_snapshot(
   repo,
   destdir = NULL,
+  packages = NULL,
   win_binaries = TRUE,
   mac_binaries = TRUE,
   bin_versions = r_version()
@@ -18,7 +19,9 @@ r_version()
 \arguments{
 \item{repo}{url of the cran-like repository to snapshot}
 
-\item{destdir}{directory in which to store the snapshotted repository.}
+\item{destdir}{directory in which to store the snapshot repository.}
+
+\item{packages}{names of packages to include. Default is all packages in the repo.}
 
 \item{win_binaries}{download binary packages for Windows}
 
