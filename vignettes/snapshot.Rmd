@@ -57,7 +57,7 @@ If an R package repository is large, and you are only interested some of the pac
 
 
 ```{r}
-db <- repo_snapshot('https://ropensci.r-universe.dev', 'my-snapshot', packages = c('magick', 'tesseract', 'av'))
+db <- repo_snapshot('https://ropensci.r-universe.dev', 'my-snapshot', packages = c('magick', 'tesseract', 'unrtf'))
 list.files('my-snapshot', recursive = TRUE, full.names = TRUE)
 ```
 
@@ -69,7 +69,21 @@ db[,c("Package", "Version", "License")]
 ```
 
 
-## Installing packages from a local snapshot
+## Installing packages from a local snapshot (offline)
+
+Usually R package repositories are hosted via the web, but it is also possible to use a local package repository (offline). The way to do this is to set a `repos` parameter in R to the full path of the snapshot directory, prefixed with `"file://"`. For example, suppose we want to install packages from the snapshot we just generated:
+
+```{r}
+(repo_local <- paste0("file://", normalizePath('my-snapshot')))
+
+# Show available packages in the snapshot
+available.packages(repos = repo_local)[,c("Package", "Version", "License")]
+
+# Install a package from the local snapshot
+install.packages('unrtf', repos = repo_local, type = 'source')
+```
+
+
 
 ## Hosting snapshots on GitHub
 
