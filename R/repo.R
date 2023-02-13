@@ -42,7 +42,7 @@ download_single_repo <- function(url, destdir, type = 'src', packages = NULL){
   unlink(destdir, recursive = TRUE)
   dir.create(destdir, showWarnings = FALSE, recursive = TRUE)
   withr::local_dir(destdir)
-  message("Mirroring repo: ", url)
+  print_err("Mirroring repo: %s ", url)
   df <- repo_index(url)
   if(length(packages)){
     missing <- setdiff(packages, df$Package)
@@ -111,4 +111,8 @@ r_version <- function(){
 
 major_version <- function(str){
   sub("^(\\d+\\.\\d+).*", "\\1", str)
+}
+
+print_err <- function(...){
+  cat(sprintf(...), file = stderr())
 }
