@@ -1,7 +1,6 @@
 ---
-title: "Making and publishing package repository snapshots"
+title: "Making and publishing R package repository snapshots"
 output: html_document
-date: "2023-02-11"
 vignette: >
   %\VignetteIndexEntry{Making and publishing package repository snapshots}
   %\VignetteEngine{knitr::rmarkdown}
@@ -12,12 +11,72 @@ vignette: >
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## Snapshot a full package repository
+
+An R package repository is simply directory containing the R package files, accompanied a file named `PACKAGES` that stores and index and metadata needed by the R package manager. Optionally there are also `PACKAGES.gz` and `PACKAGES.rds` files, storing exactly the same data in gzipped or rds format respectively.
+
+R package repositories are static files and can be hosted on any public HTTP server. The folders need to be in the following directory structure for the R package manager to find them:
+
+```
+./src/contrib/                        ← dir with source packages
+./bin/windows/contrib/{x,y}/          ← dir with windows binaries for R major version x,y
+./bin/macosx/contrib/{x,y}/           ← dir with macos binaries for R major version x,y
+```
+
+These paths are relative to the `repos` parameter in `install.packages()`.
+
+
+
+## Snapshotting a full package repository
+
+Use `repo_snapshot()` to download an entire R package repository:
+
+```{r}
+library(snapshot)
+destdir <- 'r-rust-snapshot'
+db <- repo_snapshot('https://r-rust.r-universe.dev', destdir)
+
+# See what we got
+list.files(destdir, recursive = TRUE, full.names = TRUE)
+```
+
+By default `repo_snapshot()` only downloads the source packages. Usually R can install packages from source, however for packages with compiled C/C++/Rust/Fortran code, it may convenient for users to also provide the pre-compiled binary packages:
+
+
+```{r}
+db <- repo_snapshot('https://r-rust.r-universe.dev', 'r-rust-snapshot',
+                    win_binaries = TRUE, mac_binaries = TRUE, bin_versions = "4.2")
+# See what we got
+list.files(destdir, recursive = TRUE, full.names = TRUE)
+```
+
+Note that binary packages for Windows and MacOS can only be used with exactly that R version. You can pass a vector to `bin_versions` in case you want to download binaries for multiple versions of R (if the server has those available).
 
 ## Create a custom snapshot
+
+If an R package repository is large, and you are only interested some of the packages, you can create a custom snapshot of a subset of the repository by specifying the `packages` argument:
+
+
+```{r}
+db <- repo_snapshot('https://ropensci.r-universe.dev', 'my-snapshot', packages = c('magick', 'tesseract', 'av'))
+list.files('my-snapshot', recursive = TRUE, full.names = TRUE)
+```
+
+This automatically includes the proper `PACKAGES` index files for the custom snapshot subset:
+
+```{r}
+db <- read.dcf("my-snapshot/src/contrib/PACKAGES")
+db[,c("Package", "Version", "License")]
+```
+
 
 ## Installing packages from a local snapshot
 
 ## Hosting snapshots on GitHub
 
 ## Archiving snapshots in a container registry
+
+
+```{r}
+unlink('r-rust-snapshot', recursive = TRUE)
+
+```

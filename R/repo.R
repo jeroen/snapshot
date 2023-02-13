@@ -15,7 +15,7 @@
 #' packages. The default is to download binaries only for your local R version.
 #' @examples repo_snapshot('https://jeroen.r-universe.dev', 'test', bin_versions = c("4.0", "4.1", "4.2", "4.3"))
 #' unlink("test", recursive = TRUE)
-repo_snapshot <- function(repo, destdir = NULL, packages = NULL, win_binaries = TRUE, mac_binaries = TRUE, bin_versions = r_version()){
+repo_snapshot <- function(repo, destdir = NULL, packages = NULL, win_binaries = FALSE, mac_binaries = FALSE, bin_versions = r_version()){
   if(!length(destdir))
     destdir <- chartr('.', '_', sub("/.*$", "", sub("^.*//", "", repo)))
   unlink(destdir, recursive = TRUE)

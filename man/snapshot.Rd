@@ -9,8 +9,8 @@ repo_snapshot(
   repo,
   destdir = NULL,
   packages = NULL,
-  win_binaries = TRUE,
-  mac_binaries = TRUE,
+  win_binaries = FALSE,
+  mac_binaries = FALSE,
   bin_versions = r_version()
 )
 
